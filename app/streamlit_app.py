@@ -1,10 +1,11 @@
 """
-Breast Oncology Clinical Triage & Risk Alignment System
+BOCTe (Breast Oncology Clinical Triage)
 Production-ready clinician interface focused exclusively on Single Patient Triage.
 """
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import sys
@@ -12,6 +13,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import docx
+from docx.shared import Pt, RGBColor
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -26,7 +29,7 @@ from src.inference import CLINICAL_FEATURE_LABELS, InferenceEngine
 
 # Page Configuration
 st.set_page_config(
-    page_title="Single Patient Oncology Triage",
+    page_title="BOCTe (Breast Oncology Clinical Triage)",
     page_icon="🩺",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -227,6 +230,75 @@ def render_clinical_gauge(match_percentage: float, color: str) -> go.Figure:
     return fig
 
 
+def generate_docx_report(
+    patient_demographics: dict[str, Any],
+    physical_findings: dict[str, bool],
+    history_comorbidities: dict[str, bool],
+    triage: dict[str, Any],
+    concordance_pct: float,
+    features_dict: dict[str, Any],
+    assessment_metrics: dict[str, Any],
+    timestamp: str,
+) -> bytes:
+    """Generate a formatted Microsoft Word (.docx) document for the Clinical Assessment."""
+    doc = docx.Document()
+
+    # Title
+    title_p = doc.add_paragraph()
+    title_run = title_p.add_run("CLINICAL ONCOLOGY TRIAGE & CONCORDANCE REPORT")
+    title_run.bold = True
+    title_run.font.size = Pt(18)
+    title_run.font.color.rgb = RGBColor(15, 23, 42)
+
+    # Subtitle / Timestamp
+    sub_p = doc.add_paragraph()
+    sub_run = sub_p.add_run(f"Evaluation Timestamp: {timestamp}\nTriage Priority: {triage['code']} PRIORITY ({triage['label']})")
+    sub_run.font.size = Pt(10)
+    sub_run.font.color.rgb = RGBColor(100, 116, 139)
+
+    doc.add_heading("1. PATIENT DEMOGRAPHICS & PRESENTATION", level=2)
+    p1 = doc.add_paragraph()
+    p1.add_run(f"• Age: {patient_demographics['age']} years old\n")
+    p1.add_run(f"• Biological Sex: {patient_demographics['sex']}\n")
+    p1.add_run(f"• Laterality: {patient_demographics['laterality']} Breast\n")
+    p1.add_run(f"• Clinical Staging: {patient_demographics['stage']}\n")
+    p1.add_run(f"• Initial Presentation Date: {patient_demographics['reg_date']}\n")
+    p1.add_run(f"• Evaluation Date: {patient_demographics['diag_date']}\n")
+    p1.add_run(f"• Diagnostic Lag: {features_dict.get('Diagnostic_Lag_Days', 0):.0f} days\n")
+    p1.add_run(f"• Lifestyle Factors: Smoking: {patient_demographics['smoking']} | Alcohol: {patient_demographics['alcohol']}")
+
+    doc.add_heading("2. PHYSICAL FINDINGS & MEDICAL HISTORY", level=2)
+    p2 = doc.add_paragraph()
+    p2.add_run(f"• Palpable Breast Mass: {'PRESENT' if physical_findings['lump'] else 'ABSENT'}\n")
+    p2.add_run(f"• Nipple / Skin Retraction: {'PRESENT' if physical_findings['retraction'] else 'ABSENT'}\n")
+    p2.add_run(f"• Localized Breast Swelling: {'PRESENT' if physical_findings['swelling'] else 'ABSENT'}\n")
+    p2.add_run(f"• Breast / Mastalgia Pain: {'PRESENT' if physical_findings['pain'] else 'ABSENT'}\n")
+    p2.add_run(f"• Nipple Discharge: {'PRESENT' if physical_findings['discharge'] else 'ABSENT'}\n")
+    p2.add_run(f"• Family History of Breast Cancer: {'POSITIVE' if history_comorbidities['fam_breast'] else 'NEGATIVE'}\n")
+    p2.add_run(f"• Family History of Other Cancers: {'POSITIVE' if history_comorbidities['fam_other'] else 'NEGATIVE'}\n")
+    p2.add_run(f"• Comorbidities: Hypertension ({'YES' if history_comorbidities['htn'] else 'NO'}), Diabetes ({'YES' if history_comorbidities['dm'] else 'NO'}), Peptic Ulcer History ({'YES' if history_comorbidities['pud'] else 'NO'})")
+
+    doc.add_heading("3. MALIGNANCY CONCORDANCE ASSESSMENT", level=2)
+    p3 = doc.add_paragraph()
+    p3.add_run(f"• Malignancy Concordance Score: {concordance_pct}%\n")
+    p3.add_run(f"• Triage Priority Level: {triage['code']} PRIORITY ({triage['label']})\n")
+    p3.add_run(f"• Symptom Burden Score: {features_dict.get('Symptom_Severity_Index', 0):.0f} / 5\n")
+    p3.add_run(f"• Metabolic Risk Score: {features_dict.get('Metabolic_Risk_Score', 0):.0f} / 3\n")
+    p3.add_run(f"• Familial Risk Score: {features_dict.get('Familial_History_Score', 0):.0f} / 2\n")
+    p3.add_run(f"• Autoencoder Reconstruction MSE: {assessment_metrics.get('autoencoder_mse', 0):.4f}")
+
+    doc.add_heading("4. CLINICAL IMPRESSION & PROTOCOL ACTION PLAN", level=2)
+    p4 = doc.add_paragraph()
+    p4.add_run(f"Impression:\n{triage['summary']}\n\n")
+    act_run = p4.add_run(f"Recommended Action Plan:\n{triage['action']}")
+    act_run.bold = True
+
+    bio = io.BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio.getvalue()
+
+
 def reset_form_state():
     """Reset all input fields in session state to cleared / zero default state."""
     st.session_state["input_age"] = 18
@@ -257,7 +329,7 @@ def main():
         """
         <div class="clinical-header">
             <h1 style="margin:0; font-size:1.85rem; font-weight:800; color:#ffffff; letter-spacing:-0.02em;">
-                🩺 Breast Oncology Clinical Triage & Risk Alignment System
+                BOCTe (Breast Oncology Clinical Triage)
             </h1>
         </div>
         """,
@@ -274,7 +346,7 @@ def main():
     col_in, col_out = st.columns([1.1, 1.0], gap="large")
 
     with col_in:
-        st.markdown("### 📝 Patient Presentation & Clinical History")
+        st.markdown("### Fill in the patient's information below")
 
         with st.container():
             st.markdown("#### Patient Demographics & Lifestyle")
@@ -422,131 +494,12 @@ def main():
                 unsafe_allow_html=True,
             )
 
-    # Full Width Formatted Clinical Assessment Report
+    # Clinical Assessment Export Options
     st.markdown("---")
-    st.markdown("### 📋 Clinical Assessment Report")
+    st.markdown("### 📋 Export Clinical Assessment")
 
     now_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Badges helper
-    def b_badge(val: bool) -> str:
-        return '<span class="status-badge badge-positive">PRESENT</span>' if val else '<span class="status-badge badge-negative">ABSENT</span>'
-
-    st.markdown(
-        f"""
-        <div class="report-container">
-            <div class="report-header">
-                <div>
-                    <h3 style="margin:0; color:#ffffff; font-size:1.3rem; font-weight:700;">
-                        PATIENT ONCOLOGY TRIAGE & CONCORDANCE EVALUATION
-                    </h3>
-                    <div style="font-size:0.82rem; color:#94a3b8; margin-top:3px;">
-                        Evaluation Date: <b>{now_timestamp}</b>
-                    </div>
-                </div>
-                <div>
-                    <span class="priority-pill {pill_class}" style="font-size:0.95rem; padding:6px 18px;">
-                        {triage['code']} PRIORITY
-                    </span>
-                </div>
-            </div>
-
-            <!-- Demographics & Clinical Presentation -->
-            <div class="report-section-title">1. Patient Baseline & Presentation Timeline</div>
-            <table class="report-table">
-                <tr>
-                    <th>Age</th>
-                    <th>Biological Sex</th>
-                    <th>Laterality</th>
-                    <th>Clinical Stage</th>
-                    <th>Initial Presentation</th>
-                    <th>Evaluation Date</th>
-                    <th>Diagnostic Lag</th>
-                </tr>
-                <tr>
-                    <td><b>{age_input} years</b></td>
-                    <td>{sex_input}</td>
-                    <td>{laterality_input}</td>
-                    <td><b>{stage_input}</b></td>
-                    <td>{reg_date_input}</td>
-                    <td>{diag_date_input}</td>
-                    <td><b>{features_dict['Diagnostic_Lag_Days']:.0f} days</b></td>
-                </tr>
-            </table>
-
-            <!-- Physical Findings & Risk Profile -->
-            <div class="report-section-title">2. Physical Breast Findings & Hereditary / Comorbidity Profile</div>
-            <table class="report-table">
-                <tr>
-                    <th>Finding / Factor</th>
-                    <th>Clinical Finding Status</th>
-                    <th>Finding / Factor</th>
-                    <th>Clinical Finding Status</th>
-                </tr>
-                <tr>
-                    <td>Palpable Breast Mass</td>
-                    <td>{b_badge(lump_input)}</td>
-                    <td>Family History of Breast Cancer</td>
-                    <td>{b_badge(fam_breast_input)}</td>
-                </tr>
-                <tr>
-                    <td>Nipple / Skin Retraction</td>
-                    <td>{b_badge(retraction_input)}</td>
-                    <td>Family History of Other Cancers</td>
-                    <td>{b_badge(fam_other_input)}</td>
-                </tr>
-                <tr>
-                    <td>Localized Breast Swelling</td>
-                    <td>{b_badge(swelling_input)}</td>
-                    <td>Hypertension (HTN)</td>
-                    <td>{b_badge(htn_input)}</td>
-                </tr>
-                <tr>
-                    <td>Breast / Mastalgia Pain</td>
-                    <td>{b_badge(pain_input)}</td>
-                    <td>Diabetes Mellitus (DM)</td>
-                    <td>{b_badge(dm_input)}</td>
-                </tr>
-                <tr>
-                    <td>Nipple Discharge</td>
-                    <td>{b_badge(discharge_input)}</td>
-                    <td>Peptic Ulcer History (PUD)</td>
-                    <td>{b_badge(pud_input)}</td>
-                </tr>
-            </table>
-
-            <!-- Malignancy Concordance Assessment -->
-            <div class="report-section-title">3. Malignancy Concordance & Algorithmic Evaluation</div>
-            <div style="background:rgba(30, 41, 59, 0.5); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px 18px; margin-bottom:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:1.05rem; font-weight:700; color:#ffffff;">Malignancy Concordance Score</span>
-                    <span style="font-size:1.35rem; font-weight:800; color:{triage['color']};">{concordance_pct}%</span>
-                </div>
-                <div style="font-size:0.92rem; color:#e2e8f0; line-height:1.5;">
-                    <b>Algorithmic Alignment:</b> Patient clinical vector was reconstructed with MSE of <code>{assessment['metrics']['autoencoder_mse']:.4f}</code> (Baseline 95th Percentile MSE: <code>{assessment['metrics']['baseline_p95_mse']:.4f}</code>). Feature coordinates demonstrate <b>{assessment['clinical_indices']['pattern_fit_level']}</b> with the confirmed oncology manifold.
-                </div>
-            </div>
-
-            <!-- Clinical Impression & Action Plan -->
-            <div class="report-section-title">4. Clinical Impression & Triage Protocol Recommendation</div>
-            <div style="background:rgba(30, 41, 59, 0.5); border-left:4px solid {triage['color']}; border-radius:4px; padding:14px 18px;">
-                <div style="font-size:0.95rem; font-weight:700; color:#ffffff; margin-bottom:6px;">
-                    {triage['label']}
-                </div>
-                <div style="font-size:0.92rem; color:#cbd5e1; margin-bottom:10px; line-height:1.45;">
-                    <b>Diagnostic Rationale:</b> {triage['summary']}
-                </div>
-                <div style="font-size:0.92rem; color:#f8fafc; background:rgba(0,0,0,0.3); padding:10px 14px; border-radius:6px;">
-                    <b>Recommended Action Plan:</b><br>{triage['action']}
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Export Report Options
-    st.markdown("<br>", unsafe_allow_html=True)
     exp_col1, exp_col2 = st.columns(2)
 
     # Formatted Markdown Clinical Report
@@ -595,46 +548,45 @@ Evaluation Timestamp: {now_timestamp}
             use_container_width=True,
         )
 
-    # JSON Structured Summary
-    doc_summary = {
-        "patient_demographics": {
+    # Formatted Microsoft Word (.docx) Clinical Report
+    docx_bytes = generate_docx_report(
+        patient_demographics={
             "age": age_input,
             "sex": sex_input,
             "laterality": laterality_input,
             "stage": stage_input,
-            "diagnostic_lag_days": features_dict["Diagnostic_Lag_Days"],
+            "reg_date": reg_date_input,
+            "diag_date": diag_date_input,
+            "smoking": smoking_input,
+            "alcohol": alcohol_input,
         },
-        "physical_findings": {
-            "palpable_mass": lump_input,
-            "nipple_retraction": retraction_input,
-            "breast_swelling": swelling_input,
-            "breast_pain": pain_input,
-            "nipple_discharge": discharge_input,
+        physical_findings={
+            "lump": lump_input,
+            "retraction": retraction_input,
+            "swelling": swelling_input,
+            "pain": pain_input,
+            "discharge": discharge_input,
         },
-        "history_and_comorbidities": {
-            "family_breast_cancer": fam_breast_input,
-            "family_other_cancer": fam_other_input,
-            "hypertension": htn_input,
-            "diabetes": dm_input,
+        history_comorbidities={
+            "fam_breast": fam_breast_input,
+            "fam_other": fam_other_input,
+            "htn": htn_input,
+            "dm": dm_input,
             "pud": pud_input,
         },
-        "triage_assessment": {
-            "priority": triage["code"],
-            "malignancy_concordance_score": concordance_pct,
-            "category": triage["label"],
-            "rationale": triage["summary"],
-            "action_plan": triage["action"],
-            "metrics": assessment["metrics"],
-        },
-        "assessment_timestamp": now_timestamp,
-    }
+        triage=triage,
+        concordance_pct=concordance_pct,
+        features_dict=features_dict,
+        assessment_metrics=assessment["metrics"],
+        timestamp=now_timestamp,
+    )
 
     with exp_col2:
         st.download_button(
-            label="📥 Export Clinical Triage Data (JSON)",
-            data=json.dumps(doc_summary, indent=2),
-            file_name=f"clinical_triage_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
+            label="📝 Download Clinical Report (Microsoft Word)",
+            data=docx_bytes,
+            file_name=f"clinical_oncology_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True,
         )
 

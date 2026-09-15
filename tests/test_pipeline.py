@@ -140,6 +140,56 @@ def test_batch_assessment():
     assert "Recommended_Action" in batch_res.columns
 
 
+def test_generate_docx_report():
+    """Verify that Microsoft Word (.docx) clinical report generation succeeds."""
+    from app.streamlit_app import generate_docx_report
+
+    docx_bytes = generate_docx_report(
+        patient_demographics={
+            "age": 52,
+            "sex": "Female",
+            "laterality": "Left",
+            "stage": "Stage II",
+            "reg_date": "2024-01-01",
+            "diag_date": "2024-01-15",
+            "smoking": "No",
+            "alcohol": "No",
+        },
+        physical_findings={
+            "lump": True,
+            "retraction": False,
+            "swelling": False,
+            "pain": True,
+            "discharge": False,
+        },
+        history_comorbidities={
+            "fam_breast": True,
+            "fam_other": False,
+            "htn": True,
+            "dm": False,
+            "pud": False,
+        },
+        triage={
+            "code": "RED",
+            "label": "High Malignancy Concordance",
+            "summary": "Sample summary",
+            "action": "Sample action",
+            "color": "#ef4444",
+        },
+        concordance_pct=85.0,
+        features_dict={
+            "Diagnostic_Lag_Days": 14.0,
+            "Symptom_Severity_Index": 2.0,
+            "Metabolic_Risk_Score": 1.0,
+            "Familial_History_Score": 1.0,
+        },
+        assessment_metrics={"autoencoder_mse": 0.05},
+        timestamp="2024-01-15 12:00:00",
+    )
+    assert isinstance(docx_bytes, bytes)
+    assert len(docx_bytes) > 1000
+
+
 if __name__ == "__main__":
     test_dataset_loading_and_shape()
     print("[PASS] test_dataset_loading_and_shape")
@@ -151,5 +201,8 @@ if __name__ == "__main__":
     print("[PASS] test_inference_engine_assessment")
     test_batch_assessment()
     print("[PASS] test_batch_assessment")
+    test_generate_docx_report()
+    print("[PASS] test_generate_docx_report")
     print("\nALL TESTS PASSED SUCCESSFULLY!")
+
 
