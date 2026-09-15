@@ -221,7 +221,10 @@ class AutoencoderTrainer:
         """Load PyTorch weights and metadata."""
         if not Path(path).exists():
             raise FileNotFoundError(f"Model file {path} not found.")
-        payload = torch.load(path, map_location=self.device)
+        try:
+            payload = torch.load(path, map_location=self.device, weights_only=False)
+        except TypeError:
+            payload = torch.load(path, map_location=self.device)
         self.input_dim = payload.get("input_dim", 20)
         self.latent_dim = payload.get("latent_dim", 4)
         self.model = MalignantAutoencoder(input_dim=self.input_dim, latent_dim=self.latent_dim).to(self.device)

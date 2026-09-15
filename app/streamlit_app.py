@@ -178,13 +178,15 @@ st.markdown(
 def get_inference_engine() -> InferenceEngine:
     """Load pre-trained models and preprocessing artifacts."""
     models_dir = Path("models")
-    if not (models_dir / "autoencoder.pth").exists() or not (models_dir / "scaler.pkl").exists():
+    try:
+        return InferenceEngine(models_dir=models_dir)
+    except Exception:
         from main import train_pipeline
 
         with st.spinner("Initializing models..."):
             train_pipeline()
 
-    return InferenceEngine(models_dir=models_dir)
+        return InferenceEngine(models_dir=models_dir)
 
 
 def render_clinical_gauge(match_percentage: float, color: str) -> go.Figure:
