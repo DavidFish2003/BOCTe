@@ -225,6 +225,28 @@ def render_clinical_gauge(match_percentage: float, color: str) -> go.Figure:
     return fig
 
 
+def reset_form_state():
+    """Reset all input fields in session state to cleared / zero default state."""
+    st.session_state["input_age"] = 18
+    st.session_state["input_sex"] = "Female"
+    st.session_state["input_laterality"] = "Left"
+    st.session_state["input_smoking"] = "No"
+    st.session_state["input_alcohol"] = "No"
+    st.session_state["input_lump"] = False
+    st.session_state["input_swelling"] = False
+    st.session_state["input_pain"] = False
+    st.session_state["input_discharge"] = False
+    st.session_state["input_retraction"] = False
+    st.session_state["input_fam_breast"] = False
+    st.session_state["input_fam_other"] = False
+    st.session_state["input_htn"] = False
+    st.session_state["input_dm"] = False
+    st.session_state["input_pud"] = False
+    st.session_state["input_stage"] = "Stage 0"
+    st.session_state["input_reg_date"] = date.today()
+    st.session_state["input_diag_date"] = date.today()
+
+
 def main():
     engine = get_inference_engine()
 
@@ -243,8 +265,7 @@ def main():
     # Top Action Bar
     top_col1, top_col2 = st.columns([0.85, 0.15])
     with top_col2:
-        if st.button("🔄 Reset Form", use_container_width=True):
-            st.session_state.clear()
+        if st.button("🔄 Reset Form", use_container_width=True, on_click=reset_form_state):
             st.rerun()
 
     # Main 2-Column Workstation Layout
@@ -257,47 +278,47 @@ def main():
             st.markdown("#### Patient Demographics & Lifestyle")
             c1, c2, c3 = st.columns(3)
             with c1:
-                age_input = st.slider("Patient Age (Years)", min_value=18, max_value=95, value=56)
+                age_input = st.slider("Patient Age (Years)", min_value=18, max_value=95, value=18, key="input_age")
             with c2:
-                sex_input = st.selectbox("Biological Sex", ["Female", "Male"], index=0)
+                sex_input = st.selectbox("Biological Sex", ["Female", "Male"], index=0, key="input_sex")
             with c3:
-                laterality_input = st.selectbox("Laterality", ["Left", "Right", "Bilateral"], index=0)
+                laterality_input = st.selectbox("Laterality", ["Left", "Right", "Bilateral"], index=0, key="input_laterality")
 
             c4, c5 = st.columns(2)
             with c4:
-                smoking_input = st.selectbox("Smoking History", ["No", "Yes"], index=0)
+                smoking_input = st.selectbox("Smoking History", ["No", "Yes"], index=0, key="input_smoking")
             with c5:
-                alcohol_input = st.selectbox("Alcohol Consumption", ["No", "Yes"], index=0)
+                alcohol_input = st.selectbox("Alcohol Consumption", ["No", "Yes"], index=0, key="input_alcohol")
 
             st.markdown("#### Physical Breast Findings")
             s1, s2, s3 = st.columns(3)
             with s1:
-                lump_input = st.checkbox("Palpable Breast Mass", value=True)
-                swelling_input = st.checkbox("Localized Breast Swelling", value=True)
+                lump_input = st.checkbox("Palpable Breast Mass", value=False, key="input_lump")
+                swelling_input = st.checkbox("Localized Breast Swelling", value=False, key="input_swelling")
             with s2:
-                pain_input = st.checkbox("Breast / Mastalgia Pain", value=True)
-                discharge_input = st.checkbox("Nipple Discharge", value=False)
+                pain_input = st.checkbox("Breast / Mastalgia Pain", value=False, key="input_pain")
+                discharge_input = st.checkbox("Nipple Discharge", value=False, key="input_discharge")
             with s3:
-                retraction_input = st.checkbox("Nipple / Skin Retraction", value=True)
+                retraction_input = st.checkbox("Nipple / Skin Retraction", value=False, key="input_retraction")
 
             st.markdown("#### Familial & Medical History")
             f1, f2 = st.columns(2)
             with f1:
-                fam_breast_input = st.checkbox("Family History of Breast Cancer", value=True)
-                fam_other_input = st.checkbox("Family History of Other Cancers", value=False)
+                fam_breast_input = st.checkbox("Family History of Breast Cancer", value=False, key="input_fam_breast")
+                fam_other_input = st.checkbox("Family History of Other Cancers", value=False, key="input_fam_other")
             with f2:
-                htn_input = st.checkbox("Hypertension", value=True)
-                dm_input = st.checkbox("Diabetes Mellitus", value=False)
-                pud_input = st.checkbox("Peptic Ulcer History", value=False)
+                htn_input = st.checkbox("Hypertension", value=False, key="input_htn")
+                dm_input = st.checkbox("Diabetes Mellitus", value=False, key="input_dm")
+                pud_input = st.checkbox("Peptic Ulcer History", value=False, key="input_pud")
 
             st.markdown("#### Clinical Staging & Presentation Timeline")
             t1, t2, t3 = st.columns(3)
             with t1:
-                stage_input = st.selectbox("Clinical Stage", ["Stage 0", "Stage I", "Stage II", "Stage III", "Stage IV"], index=3)
+                stage_input = st.selectbox("Clinical Stage", ["Stage 0", "Stage I", "Stage II", "Stage III", "Stage IV"], index=0, key="input_stage")
             with t2:
-                reg_date_input = st.date_input("Initial Presentation Date", value=date.today() - timedelta(days=21))
+                reg_date_input = st.date_input("Initial Presentation Date", value=date.today(), key="input_reg_date")
             with t3:
-                diag_date_input = st.date_input("Clinical Evaluation Date", value=date.today())
+                diag_date_input = st.date_input("Clinical Evaluation Date", value=date.today(), key="input_diag_date")
 
     # Construct patient dictionary
     patient_dict = {
