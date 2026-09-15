@@ -1,0 +1,32 @@
+{
+    "include": [
+        "src",
+        "app",
+        "tests",
+        "main.py"
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        ".venv"
+    ],
+    "venvPath": "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1",
+    "venv": ".venv",
+    "extraPaths": [
+        "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1\\.venv\\Lib\\site-packages",
+        "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1",
+        "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1\\src"
+    ],
+    "executionEnvironments": [
+        {
+            "root": "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1",
+            "extraPaths": [
+                "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1\\.venv\\Lib\\site-packages",
+                "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1",
+                "C:\\Users\\HomePC\\.antigravity-ide\\Ebenezer_1\\src"
+            ]
+        }
+    ],
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none"
+}
