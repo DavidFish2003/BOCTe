@@ -1,7 +1,6 @@
 """
 Breast Oncology Clinical Triage & Risk Alignment System
-Production-ready clinician interface focused exclusively on Single Patient Triage
-calibrated against a reference cohort of 616 confirmed malignant breast cancer cases.
+Production-ready clinician interface focused exclusively on Single Patient Triage.
 """
 
 from __future__ import annotations
@@ -30,7 +29,7 @@ st.set_page_config(
     page_title="Single Patient Oncology Triage",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Custom Styling for Clinical Executive Theme
@@ -107,13 +106,6 @@ st.markdown(
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
-    .sidebar-info-card {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-    }
     .report-container {
         background: rgba(15, 23, 42, 0.85);
         border: 1px solid rgba(56, 189, 248, 0.25);
@@ -189,7 +181,7 @@ def get_inference_engine() -> InferenceEngine:
     if not (models_dir / "autoencoder.pth").exists() or not (models_dir / "scaler.pkl").exists():
         from main import train_pipeline
 
-        with st.spinner("Calibrating against 616 confirmed oncology cases..."):
+        with st.spinner("Initializing models..."):
             train_pipeline()
 
     return InferenceEngine(models_dir=models_dir)
@@ -236,42 +228,6 @@ def render_clinical_gauge(match_percentage: float, color: str) -> go.Figure:
 def main():
     engine = get_inference_engine()
 
-    # Sidebar: System Status & Clinical Protocol Legend
-    st.sidebar.markdown("### 🩺 System Calibration")
-    st.sidebar.markdown(
-        """
-        <div class="sidebar-info-card">
-            <div style="font-size:0.82rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Reference Cohort</div>
-            <div style="font-size:1.1rem; font-weight:700; color:#38bdf8; margin-top:2px;">616 Confirmed Cases</div>
-            <div style="font-size:0.8rem; color:#cbd5e1; margin-top:4px;">Deep Generative Manifold + Statistical Density Ensemble</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.sidebar.markdown("### 🚦 Triage Protocol Legend")
-    st.sidebar.markdown(
-        """
-        <div class="sidebar-info-card" style="border-left: 3px solid #ef4444;">
-            <b style="color:#ef4444;">🔴 RED PRIORITY (≥ 70%)</b><br>
-            <span style="font-size:0.8rem; color:#cbd5e1;">High Malignancy Concordance Score. Immediate fast-track imaging and urgent oncology referral.</span>
-        </div>
-        <div class="sidebar-info-card" style="border-left: 3px solid #f59e0b;">
-            <b style="color:#f59e0b;">🟡 YELLOW PRIORITY (40% - 69%)</b><br>
-            <span style="font-size:0.8rem; color:#cbd5e1;">Moderate Malignancy Concordance Score. Diagnostic imaging and short-interval clinical review.</span>
-        </div>
-        <div class="sidebar-info-card" style="border-left: 3px solid #10b981;">
-            <b style="color:#10b981;">🟢 GREEN ROUTINE (&lt; 40%)</b><br>
-            <span style="font-size:0.8rem; color:#cbd5e1;">Low Malignancy Concordance Score. Routine age-appropriate screening.</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if st.sidebar.button("🔄 Reset Patient Form", use_container_width=True):
-        st.session_state.clear()
-        st.rerun()
-
     # Clinical Header
     st.markdown(
         """
@@ -279,13 +235,17 @@ def main():
             <h1 style="margin:0; font-size:1.85rem; font-weight:800; color:#ffffff; letter-spacing:-0.02em;">
                 🩺 Breast Oncology Clinical Triage & Risk Alignment System
             </h1>
-            <p style="margin:6px 0 0 0; font-size:0.95rem; color:#94a3b8;">
-                Single-patient oncology evaluation and Malignancy Concordance Score calibrated against a reference registry of <b>616 confirmed malignant breast cancer cases</b>.
-            </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    # Top Action Bar
+    top_col1, top_col2 = st.columns([0.85, 0.15])
+    with top_col2:
+        if st.button("🔄 Reset Form", use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
 
     # Main 2-Column Workstation Layout
     col_in, col_out = st.columns([1.1, 1.0], gap="large")
@@ -458,7 +418,7 @@ def main():
                         PATIENT ONCOLOGY TRIAGE & CONCORDANCE EVALUATION
                     </h3>
                     <div style="font-size:0.82rem; color:#94a3b8; margin-top:3px;">
-                        Evaluation Date: <b>{now_timestamp}</b> | Reference Registry: <b>N=616 Confirmed Malignant Cases</b>
+                        Evaluation Date: <b>{now_timestamp}</b>
                     </div>
                 </div>
                 <div>
@@ -569,7 +529,6 @@ def main():
     # Formatted Markdown Clinical Report
     report_markdown = f"""# CLINICAL ONCOLOGY TRIAGE & CONCORDANCE REPORT
 Evaluation Timestamp: {now_timestamp}
-Reference Registry: N=616 Confirmed Malignant Breast Cancer Cases
 
 ## 1. PATIENT DEMOGRAPHICS & PRESENTATION
 - Age: {age_input} years old
