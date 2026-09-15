@@ -261,7 +261,7 @@ def generate_docx_report(
     p1.add_run(f"• Age: {patient_demographics['age']} years old\n")
     p1.add_run(f"• Biological Sex: {patient_demographics['sex']}\n")
     p1.add_run(f"• Laterality: {patient_demographics['laterality']} Breast\n")
-    p1.add_run(f"• Clinical Staging: {patient_demographics['stage']}\n")
+
     p1.add_run(f"• Initial Presentation Date: {patient_demographics['reg_date']}\n")
     p1.add_run(f"• Evaluation Date: {patient_demographics['diag_date']}\n")
     p1.add_run(f"• Diagnostic Lag: {features_dict.get('Diagnostic_Lag_Days', 0):.0f} days\n")
@@ -316,7 +316,7 @@ def reset_form_state():
     st.session_state["input_htn"] = False
     st.session_state["input_dm"] = False
     st.session_state["input_pud"] = False
-    st.session_state["input_stage"] = "Stage 0"
+
     st.session_state["input_reg_date"] = date.today()
     st.session_state["input_diag_date"] = date.today()
 
@@ -385,13 +385,11 @@ def main():
                 dm_input = st.checkbox("Diabetes Mellitus", value=False, key="input_dm")
                 pud_input = st.checkbox("Peptic Ulcer History", value=False, key="input_pud")
 
-            st.markdown("#### Clinical Staging & Presentation Timeline")
-            t1, t2, t3 = st.columns(3)
+            st.markdown("#### Presentation Timeline")
+            t1, t2 = st.columns(2)
             with t1:
-                stage_input = st.selectbox("Clinical Stage", ["Stage 0", "Stage I", "Stage II", "Stage III", "Stage IV"], index=0, key="input_stage")
-            with t2:
                 reg_date_input = st.date_input("Initial Presentation Date", value=date.today(), key="input_reg_date")
-            with t3:
+            with t2:
                 diag_date_input = st.date_input("Clinical Evaluation Date", value=date.today(), key="input_diag_date")
 
     # Construct patient dictionary
@@ -412,7 +410,7 @@ def main():
         "Hypertension": "Yes" if htn_input else "No",
         "Diabetes": "Yes" if dm_input else "No",
         "PUD": "Yes" if pud_input else "No",
-        "Stage (main)": stage_input,
+        "Stage (main)": "Unknown",
         "Laterality": laterality_input,
     }
 
@@ -510,7 +508,7 @@ Evaluation Timestamp: {now_timestamp}
 - Age: {age_input} years old
 - Biological Sex: {sex_input}
 - Laterality: {laterality_input} Breast
-- Clinical Staging: {stage_input}
+
 - Initial Presentation Date: {reg_date_input}
 - Evaluation Date: {diag_date_input}
 - Diagnostic Lag: {features_dict['Diagnostic_Lag_Days']:.0f} days
@@ -554,7 +552,6 @@ Evaluation Timestamp: {now_timestamp}
             "age": age_input,
             "sex": sex_input,
             "laterality": laterality_input,
-            "stage": stage_input,
             "reg_date": reg_date_input,
             "diag_date": diag_date_input,
             "smoking": smoking_input,
